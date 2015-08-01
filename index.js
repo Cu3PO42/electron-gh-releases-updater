@@ -1,8 +1,8 @@
 var GitHubApi = require("github"),
     semver = require("semver"),
     request = require("request"),
-    fs = require("fs"),
-    del = require("del"),
+    fs = require("fs-extra"),
+    unzip = require("unzip"),
     tmp = require("tmp");
 
 var gh = new GitHubApi({version: "3.0.0"});
@@ -12,7 +12,7 @@ function isUpdateRelease(release) {
         return false;
     var assets = release.assets;
     for (var i = 0; i < assets.length; ++i) {
-        if (assets[i].name.match(/update-any\.zip$/)
+        if (assets[i].name.match(/update-any\.zip$/))
             return true;
     }
     return false;
@@ -21,15 +21,10 @@ function isUpdateRelease(release) {
 
 function makeUpdater(asset, packageJson) {
     function update(directory, callback) {
-        tmp.file(function(err, path, fd) {
-            request.get(asset.url).pipe(fs.createWriteStream(null, {fd: fd}));
-            .on("end", function() {
-                del([directory+"**/*", directory+"**"], function(err) {
-                    fs.createReadStream(null, {fd: fd}).pipe(unzip.Extract({path: directory}))
-                    .on("end", function() {
-                        callback(null);
-                    });
-                });
+        tmp.dir(function(err, path) {
+            request.get(asset.browser_download_url).pipe(unzip.Extract({path: path}))
+            .on("finish", function() {
+                fs.move(path, directory, {clobber: true}, callback);
             });
         });
     }
@@ -37,7 +32,7 @@ function makeUpdater(asset, packageJson) {
     return {updateAvailable: true, update: update};
 }
 
-module.exports = function(packageJson, directory, callback) {
+module.exports = function(packageJson, callback) {
     if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
         callback("Passed package.json does not contain a valid git repository.");
         return;
@@ -58,7 +53,7 @@ module.exports = function(packageJson, directory, callback) {
                 if (assets[j].name.match(/update-any\.zip$/)) {
                     callback(null, makeUpdater(assets[j], packageJson));
                 }
-            
+
         } else {
             callback(null, {updateAvailable: false});
         }

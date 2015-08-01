@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "typescript": {
+    "definition": "./electron-gh-releases-updater.d.ts"
+  },
   "keywords": [
     "electron",
     "github",
@@ -15,13 +18,16 @@
     "updater",
     "download"
   ],
-  "author": "Cu3PO42",
+  "author": {
+    "name": "Cu3PO42"
+  },
   "license": "MIT",
   "dependencies": {
-    "del": "^1.2.0",
+    "fs-extra": "^0.22.1",
     "github": "^0.2.4",
     "request": "^2.60.0",
     "semver": "^5.0.1",
-    "tmp": "0.0.26"
+    "tmp": "0.0.26",
+    "unzip": "^0.1.11"
   }
 }
