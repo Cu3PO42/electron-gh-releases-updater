@@ -1,0 +1,27 @@
+{
+  "name": "electron-gh-releases-updater",
+  "version": "0.1.0",
+  "description": "Updates an app based on GH Electron from GH releases.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "github",
+    "releases",
+    "update",
+    "gh",
+    "updater",
+    "download"
+  ],
+  "author": "Cu3PO42",
+  "license": "MIT",
+  "dependencies": {
+    "del": "^1.2.0",
+    "github": "^0.2.4",
+    "request": "^2.60.0",
+    "semver": "^5.0.1",
+    "tmp": "0.0.26"
+  }
+}
