@@ -2,7 +2,7 @@ var GitHubApi = require("github"),
     semver = require("semver"),
     request = require("request"),
     fs = require("fs-extra"),
-    unzip = require("unzip"),
+    AdmZip = require("adm-zip"),
     tmp = require("tmp");
 
 var gh = new GitHubApi({version: "3.0.0"});
@@ -22,8 +22,12 @@ function isUpdateRelease(release) {
 function makeUpdater(asset, packageJson) {
     function update(directory, callback) {
         tmp.dir(function(err, path) {
-            request.get(asset.browser_download_url).pipe(unzip.Extract({path: path}))
-            .on("finish", function() {
+            request({
+                method: "GET",
+                uri: asset.browser_download_url,
+                gzip: true, encoding: null
+            }, function(error, response, body) {
+                new AdmZip(body).extractAllTo(path);
                 fs.move(path, directory, {clobber: true}, callback);
             });
         });
