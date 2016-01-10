@@ -51,5 +51,9 @@
     }
   ],
   "directories": {},
-  "_resolved": "https://registry.npmjs.org/electron-gh-releases-updater/-/electron-gh-releases-updater-0.1.0.tgz"
+  "_resolved": "https://registry.npmjs.org/electron-gh-releases-updater/-/electron-gh-releases-updater-0.1.0.tgz",
+  "devDependencies": {
+    "jasmine": "^2.4.1",
+    "proxyquire": "^1.7.3"
+  }
 }
