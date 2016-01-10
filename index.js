@@ -46,20 +46,27 @@ module.exports = function(packageJson, callback) {
         callback("Passed package.json's repository isn't on GitHub.");
         return;
     }
-    gh.releases.listReleases({owner: m[1], repo: m[2]}, function(err, res) {
-        if (err) {
-            callback(err);
-            return;
-        }
-        for (var i = 0; i < res.length && !isUpdateRelease(res[i]); ++i) { }
-        if (i < res.length && isUpdateRelease(res[i]) && semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
-            for (var j = 0, assets = res[i].assets; j < assets.length; ++j)
-                if (assets[j].name.match(/update-any\.zip$/)) {
-                    callback(null, makeUpdater(assets[j], packageJson));
+    var page = 1;
+    function search() {
+        gh.releases.listReleases({owner: m[1], repo: m[2], page: page++, per_page: 10}, function(err, res) {
+            if (err) {
+                callback(err);
+                return;
+            }
+            for (var i = 0; i < res.length && !isUpdateRelease(res[i]); ++i) { }
+            if (i < res.length) {
+                if (isUpdateRelease(res[i]) && semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
+                    for (var j = 0, assets = res[i].assets; j < assets.length; ++j)
+                        if (assets[j].name.match(/update-any\.zip$/)) {
+                            callback(null, makeUpdater(assets[j], packageJson));
+                        }
                 }
-
-        } else {
-            callback(null, {updateAvailable: false});
-        }
-    });
+            } else if (semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
+                search();
+            } else {
+                callback(null, {updateAvailable: false});
+            }
+        });
+    }
+    search();
 };
