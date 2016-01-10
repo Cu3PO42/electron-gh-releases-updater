@@ -19,7 +19,7 @@ function isUpdateRelease(release) {
 
 }
 
-function makeUpdater(asset, packageJson) {
+function makeUpdater(asset, changelog, packageJson) {
     function update(directory, callback) {
         tmp.dir(function(err, path) {
             request({
@@ -36,6 +36,29 @@ function makeUpdater(asset, packageJson) {
     return {updateAvailable: true, update: update};
 }
 
+function getChangelog(owner, repo, id, page, packageJson, callback) {
+    var res = [];
+    function search() {
+        gh.releases.listReleases({owner: owner, repo: repo, page: page++, per_page: 10}, function(err, res) {
+            if (err) {
+                callback(err);
+                return;
+            }
+            int i = 0;
+            while (res[i].id != id) ++i;
+            for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
+                res.push({tag: res[i].tag_name, body: res[i].body});
+            }
+            if (semver.gt(res[Math.min(res.length-1, i)].tag_name.substring(1),packageJson.version)) {
+                search();
+            } else {
+                callback(null, res);
+            }
+        });
+    }
+    search();
+}
+
 module.exports = function(packageJson, callback) {
     if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
         callback("Passed package.json does not contain a valid git repository.");
@@ -46,9 +69,9 @@ module.exports = function(packageJson, callback) {
         callback("Passed package.json's repository isn't on GitHub.");
         return;
     }
-    var page = 1;
+    var page = 0;
     function search() {
-        gh.releases.listReleases({owner: m[1], repo: m[2], page: page++, per_page: 10}, function(err, res) {
+        gh.releases.listReleases({owner: m[1], repo: m[2], page: ++page, per_page: 10}, function(err, res) {
             if (err) {
                 callback(err);
                 return;
@@ -58,7 +81,9 @@ module.exports = function(packageJson, callback) {
                 if (isUpdateRelease(res[i]) && semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
                     for (var j = 0, assets = res[i].assets; j < assets.length; ++j)
                         if (assets[j].name.match(/update-any\.zip$/)) {
-                            callback(null, makeUpdater(assets[j], packageJson));
+                            getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, res) {
+                                callback(null, makeUpdater(assets[j], res, packageJson));
+                            });
                         }
                 }
             } else if (semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
