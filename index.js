@@ -33,26 +33,29 @@ function makeUpdater(asset, changelog, packageJson) {
         });
     }
 
-    return {updateAvailable: true, update: update};
+    return {updateAvailable: true, changelog: changelog, update: update};
 }
 
 function getChangelog(owner, repo, id, page, packageJson, callback) {
-    var res = [];
+    var changelog = [];
     function search() {
         gh.releases.listReleases({owner: owner, repo: repo, page: page++, per_page: 10}, function(err, res) {
             if (err) {
                 callback(err);
                 return;
             }
-            int i = 0;
+            var i = 0;
             while (res[i].id != id) ++i;
             for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
-                res.push({tag: res[i].tag_name, body: res[i].body});
+                var body = res[i].body;
+                if (body !== null && body !== undefined && body.length > 0) {
+                    changelog.push({tag: res[i].tag_name, name: res[i].name, body: body});
+                }
             }
             if (semver.gt(res[Math.min(res.length-1, i)].tag_name.substring(1),packageJson.version)) {
                 search();
             } else {
-                callback(null, res);
+                callback(null, changelog);
             }
         });
     }
@@ -81,12 +84,12 @@ module.exports = function(packageJson, callback) {
                 if (isUpdateRelease(res[i]) && semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
                     for (var j = 0, assets = res[i].assets; j < assets.length; ++j)
                         if (assets[j].name.match(/update-any\.zip$/)) {
-                            getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, res) {
-                                callback(null, makeUpdater(assets[j], res, packageJson));
+                            getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, changelog) {
+                                callback(null, makeUpdater(assets[j], changelog, packageJson));
                             });
                         }
                 }
-            } else if (semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
+            } else if (semver.gt(res[i-1].tag_name.substring(1), packageJson.version) && i == 10) {
                 search();
             } else {
                 callback(null, {updateAvailable: false});
