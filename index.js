@@ -1,6 +1,7 @@
 var GitHubApi = require("github"),
     semver = require("semver"),
     request = require("request"),
+    progress = require("request-progress"),
     fs = require("fs-extra"),
     AdmZip = require("adm-zip"),
     tmp = require("tmp");
@@ -19,17 +20,17 @@ function isUpdateRelease(release) {
 
 }
 
-function makeUpdater(asset, changelog, packageJson) {
+function makeUpdater(asset, changelog, packageJson, progressCallback) {
     function update(directory, callback) {
         tmp.dir(function(err, path) {
-            request({
+            progress(request({
                 method: "GET",
                 uri: asset.browser_download_url,
                 gzip: true, encoding: null
             }, function(error, response, body) {
                 new AdmZip(body).extractAllTo(path);
                 fs.move(path, directory, {clobber: true}, callback);
-            });
+            })).on("state", progressCallback);
         });
     }
 
@@ -66,7 +67,7 @@ function getChangelog(owner, repo, id, page, packageJson, callback) {
     search();
 }
 
-module.exports = function(packageJson, callback) {
+module.exports = function(packageJson, callback, progressCallback) {
     if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
         callback("Passed package.json does not contain a valid git repository.");
         return;
@@ -90,7 +91,7 @@ module.exports = function(packageJson, callback) {
                         if (assets[j].name.match(/update-any\.zip$/)) {
                             (function(asset) {
                                 getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, changelog) {
-                                    callback(null, makeUpdater(asset, changelog, packageJson));
+                                    callback(null, makeUpdater(asset, changelog, packageJson, progressCallback));
                                 });
                             })(assets[j]);
                         }

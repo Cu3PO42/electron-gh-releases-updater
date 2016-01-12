@@ -27,6 +27,7 @@
     "fs-extra": "^0.22.1",
     "github": "^0.2.4",
     "request": "^2.60.0",
+    "request-progress": "^1.0.2",
     "semver": "^5.0.1",
     "tmp": "0.0.26"
   },
