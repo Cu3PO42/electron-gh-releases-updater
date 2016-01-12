@@ -38,6 +38,7 @@ function makeUpdater(asset, changelog, packageJson) {
 
 function getChangelog(owner, repo, id, page, packageJson, callback) {
     var changelog = [];
+    var firstPage = true;
     function search() {
         gh.releases.listReleases({owner: owner, repo: repo, page: page++, per_page: 10}, function(err, res) {
             if (err) {
@@ -45,7 +46,10 @@ function getChangelog(owner, repo, id, page, packageJson, callback) {
                 return;
             }
             var i = 0;
-            while (res[i].id != id) ++i;
+            if (firstPage) {
+                while (res[i].id != id) ++i;
+                firstPage = false;
+            }
             for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
                 var body = res[i].body;
                 if (body !== null && body !== undefined && body.length > 0) {
