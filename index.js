@@ -84,9 +84,11 @@ module.exports = function(packageJson, callback) {
                 if (isUpdateRelease(res[i]) && semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
                     for (var j = 0, assets = res[i].assets; j < assets.length; ++j)
                         if (assets[j].name.match(/update-any\.zip$/)) {
-                            getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, changelog) {
-                                callback(null, makeUpdater(assets[j], changelog, packageJson));
-                            });
+                            (function(asset) {
+                                getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, changelog) {
+                                    callback(null, makeUpdater(asset, changelog, packageJson));
+                                });
+                            })(assets[j]);
                         }
                 }
             } else if (semver.gt(res[i-1].tag_name.substring(1), packageJson.version) && i == 10) {
