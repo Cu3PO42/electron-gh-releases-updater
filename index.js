@@ -30,7 +30,7 @@ function makeUpdater(asset, changelog, packageJson, progressCallback) {
             }, function(error, response, body) {
                 new AdmZip(body).extractAllTo(path);
                 fs.move(path, directory, {clobber: true}, callback);
-            })).on("state", progressCallback);
+            })).on("progress", progressCallback);
         });
     }
 
