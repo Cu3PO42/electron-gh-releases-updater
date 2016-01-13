@@ -4,6 +4,7 @@ var GitHubApi = require("github"),
     progress = require("request-progress"),
     fs = require("fs-extra"),
     AdmZip = require("adm-zip-electron"),
+    spawn = require("child_process").spawn,
     tmp = require("tmp"),
     path = require("path"),
     os = require("os");
@@ -24,12 +25,32 @@ function findUpdateAsset(release, fullRelease) {
                 return assets[i];
         }
     }
-    //console.log("has no update asset");
     return undefined;
 }
 
 function isUpdateRelease(release) {
     return !release.prerelease && findUpdateAsset(release) !== undefined;
+}
+
+function unzip(data, tmpDirectory, callback) {
+    //console.log("unzipping");
+    if (process.platform === "darwin") {
+        var tmpFile = tmp.fileSync({postfix: ".zip"});
+        fs.write(tmpFile.fd, data, 0, data.length, function() {
+            //console.log("written zip to file");
+            var unzp = spawn("unzip", [tmpFile.name, "-d", tmpDirectory]);
+            unzp.stdout.on("data", function(data) {});
+            //unzp.stdout.on("data", function(data) { console.log("unzip stdout: " + data); });
+            //unzp.stderr.on("data", function(data) { console.log("unzip stderr: " + data); });
+            unzp.on("close", function() {
+                tmpFile.removeCallback();
+                callback();
+            });
+        });
+    } else {
+        new AdmZip(body).extractAllTo(tmpPath);
+        callback();
+    }
 }
 
 function makeUpdater(releases, packageJson, progressCallback) {
@@ -49,25 +70,39 @@ function makeUpdater(releases, packageJson, progressCallback) {
                 uri: asset.browser_download_url,
                 gzip: true, encoding: null
             }, function(error, response, body) {
-                new AdmZip(body).extractAllTo(tmpPath);
-                if (!fullUpdate) {
-                    try {
-                        var asarPath = path.join(tmpPath, "app.asar");
-                        fs.accessSync(asarPath, fs.F_OK);
-                        fs.move(asarPath, process.resourcesPath, {clobber: true}, callback);
-                    } catch(e) {
-                        fs.move(tmpPath, path.join(process.resourcesPath, "app"), {clobber: true}, callback);
-                    }
-                } else {
-                    var appPath;
-                    if (process.platform === "darwin") {
-                        appPath = path.join(process.resourcesPath, "../..");
-                        fs.move(path.join(tmpPath, ""), appPath, {clobber: true}, callback);
+                //console.log("downloaded update");
+                unzip(body, tmpPath, function() {
+                   //console.log("unzipped");
+                   if (!fullUpdate) {
+                       //console.log("not doing a full update");
+                        try {
+                            var asarPath = path.join(tmpPath, "app.asar");
+                            fs.accessSync(asarPath, fs.F_OK);
+                            fs.move(asarPath, process.resourcesPath, {clobber: true}, callback);
+                        } catch(e) {
+                            //console.log("not an asar, moving folder " + tmpPath + " to " + path.join(process.resourcesPath, "app"));
+                            fs.move(tmpPath, path.join(process.resourcesPath, "app"), {clobber: true}, callback);
+                        }
                     } else {
-                        appPath = path.join(process.resourcesPath, "..");
-                        fs.move(tmpPath, appPath, {clobber: true}, callback);
+                        //console.log("doing a full update");
+                        var appPath;
+                        if (process.platform === "darwin") {
+                            appPath = path.join(process.resourcesPath, "../..");
+                            var newPath = path.join(tmpPath, fs.readdirSync(tmpPath)[0]);
+                            //console.log("moving " + newPath + " to " + appPath);
+                            fs.move(newPath, appPath, {clobber: true}, callback);
+                        } else {
+                            if (process.platform === "linux") {
+                                try {
+                                    var newExecPath = path.join(tmpPath, path.basename(process.execPath));
+                                    fs.chmodSync(newExecPath, '755');
+                                } catch(e) {}
+                            }
+                            appPath = path.join(process.resourcesPath, "..");
+                            fs.move(tmpPath, appPath, {clobber: true}, callback);
+                        }
                     }
-                }
+                });
             })).on("progress", progressCallback);
         });
     }
