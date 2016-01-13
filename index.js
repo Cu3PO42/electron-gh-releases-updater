@@ -3,39 +3,71 @@ var GitHubApi = require("github"),
     request = require("request"),
     progress = require("request-progress"),
     fs = require("fs-extra"),
-    AdmZip = require("adm-zip"),
-    tmp = require("tmp");
+    AdmZip = require("adm-zip-electron"),
+    tmp = require("tmp"),
+    path = require("path"),
+    os = require("os");
 
 var gh = new GitHubApi({version: "3.0.0"});
 
-function isUpdateRelease(release) {
-    if (release.prerelease)
-        return false;
-    var assets = release.assets;
-    for (var i = 0; i < assets.length; ++i) {
-        if (assets[i].name.match(/update-any\.zip$/))
-            return true;
-    }
-    return false;
+function isReleaseAsset(asset) {
+    var testRegEx = new RegExp("(update-any|" + os.platform() + "-" + os.arch() + ")\.zip");
+    return asset.name.match(testRegEx);
+}
 
+function findUpdateAsset(release, fullRelease) {
+    var assets = release.assets;
+    if (release.assets === undefined) console.log(release);
+    for (var i = 0; i < assets.length; ++i) {
+        if (isReleaseAsset(assets[i])) {
+            if (fullRelease === undefined || fullRelease === !assets[i].name.match(/update/))
+                return assets[i];
+        }
+    }
+    //console.log("has no update asset");
+    return undefined;
+}
+
+function isUpdateRelease(release) {
+    return !release.prerelease && findUpdateAsset(release) !== undefined;
 }
 
 function makeUpdater(releases, packageJson, progressCallback) {
-    var asset;
-    for (var i = 0; i < releases[0].assets.length; ++i) {
-        asset = releases[0].assets[i];
-        if (asset.name.match(/update-any\.zip/)) break;
+    var fullUpdate = false;
+    for (var i = 0; i < releases.length; ++i) {
+        if (isUpdateRelease(releases[i]) && findUpdateAsset(releases[i], false) === undefined) {
+            fullUpdate = true;
+            break;
+        }
     }
+    var asset = findUpdateAsset(releases[0], fullUpdate);
 
-    function update(directory, callback) {
-        tmp.dir(function(err, path) {
+    function update(callback) {
+        tmp.dir(function(err, tmpPath) {
             progress(request({
                 method: "GET",
                 uri: asset.browser_download_url,
                 gzip: true, encoding: null
             }, function(error, response, body) {
-                new AdmZip(body).extractAllTo(path);
-                fs.move(path, directory, {clobber: true}, callback);
+                new AdmZip(body).extractAllTo(tmpPath);
+                if (!fullUpdate) {
+                    try {
+                        var asarPath = path.join(tmpPath, "app.asar");
+                        fs.accessSync(asarPath, fs.F_OK);
+                        fs.move(asarPath, process.resourcesPath, {clobber: true}, callback);
+                    } catch(e) {
+                        fs.move(tmpPath, path.join(process.resourcesPath, "app"), {clobber: true}, callback);
+                    }
+                } else {
+                    var appPath;
+                    if (process.platform === "darwin") {
+                        appPath = path.join(process.resourcesPath, "../..");
+                        fs.move(path.join(tmpPath, ""), appPath, {clobber: true}, callback);
+                    } else {
+                        appPath = path.join(process.resourcesPath, "..");
+                        fs.move(tmpPath, appPath, {clobber: true}, callback);
+                    }
+                }
             })).on("progress", progressCallback);
         });
     }

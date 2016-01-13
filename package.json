@@ -23,7 +23,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "adm-zip": "^0.4.7",
+    "adm-zip-electron": "^0.4.7",
     "fs-extra": "^0.22.1",
     "github": "^0.2.4",
     "request": "^2.60.0",
