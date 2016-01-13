@@ -20,7 +20,13 @@ function isUpdateRelease(release) {
 
 }
 
-function makeUpdater(asset, changelog, packageJson, progressCallback) {
+function makeUpdater(releases, packageJson, progressCallback) {
+    var asset;
+    for (var i = 0; i < releases[0].assets.length; ++i) {
+        asset = releases[0].assets[i];
+        if (asset.name.match(/update-any\.zip/)) break;
+    }
+
     function update(directory, callback) {
         tmp.dir(function(err, path) {
             progress(request({
@@ -34,37 +40,20 @@ function makeUpdater(asset, changelog, packageJson, progressCallback) {
         });
     }
 
-    return {updateAvailable: true, changelog: changelog, update: update};
+    return {updateAvailable: true, changelog: getChangelog(releases), update: update};
 }
 
-function getChangelog(owner, repo, id, page, packageJson, callback) {
+function getChangelog(releases) {
     var changelog = [];
-    var firstPage = true;
-    function search() {
-        gh.releases.listReleases({owner: owner, repo: repo, page: page++, per_page: 10}, function(err, res) {
-            if (err) {
-                callback(err);
-                return;
-            }
-            var i = 0;
-            if (firstPage) {
-                while (res[i].id != id) ++i;
-                firstPage = false;
-            }
-            for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
-                var body = res[i].body;
-                if (body !== null && body !== undefined && body.length > 0) {
-                    changelog.push({tag: res[i].tag_name, name: res[i].name, body: body});
-                }
-            }
-            if (semver.gt(res[Math.min(res.length-1, i)].tag_name.substring(1),packageJson.version)) {
-                search();
-            } else {
-                callback(null, changelog);
-            }
-        });
+
+    for (var i = 0; i < releases.length; ++i) {
+        var body = releases[i].body;
+        if (body !== null && body !== undefined && body.length > 0) {
+            changelog.push({tag: releases[i].tag_name, name: releases[i].name, body: body});
+        }
     }
-    search();
+
+    return changelog;
 }
 
 module.exports = function(packageJson, callback, progressCallback) {
@@ -78,28 +67,31 @@ module.exports = function(packageJson, callback, progressCallback) {
         return;
     }
     var page = 0;
+    var releases = [];
     function search() {
         gh.releases.listReleases({owner: m[1], repo: m[2], page: ++page, per_page: 10}, function(err, res) {
             if (err) {
                 callback(err);
                 return;
             }
-            for (var i = 0; i < res.length && !isUpdateRelease(res[i]); ++i) { }
-            if (i < res.length) {
-                if (isUpdateRelease(res[i]) && semver.gt(res[i].tag_name.substring(1), packageJson.version)) {
-                    for (var j = 0, assets = res[i].assets; j < assets.length; ++j)
-                        if (assets[j].name.match(/update-any\.zip$/)) {
-                            (function(asset) {
-                                getChangelog(m[1], m[2], res[i].id, page, packageJson, function(err, changelog) {
-                                    callback(null, makeUpdater(asset, changelog, packageJson, progressCallback));
-                                });
-                            })(assets[j]);
-                        }
-                }
-            } else if (semver.gt(res[i-1].tag_name.substring(1), packageJson.version) && i == 10) {
+
+            var i = 0;
+            if (releases.length === 0) 
+                for (; i < res.length && !isUpdateRelease(res[i]); ++i) { }
+
+            for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
+                releases.push(res[i]);
+            }
+
+            if (i == res.length && res.length > 0) {
                 search();
             } else {
-                callback(null, {updateAvailable: false});
+                if (releases.length === 0) {
+                    callback(null, {updateAvailable: false});
+                    return;
+                }
+
+                callback(null, makeUpdater(releases, packageJson, progressCallback));
             }
         });
     }
