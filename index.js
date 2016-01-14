@@ -48,7 +48,7 @@ function unzip(data, tmpDirectory, callback) {
             });
         });
     } else {
-        new AdmZip(body).extractAllTo(tmpPath);
+        new AdmZip(data).extractAllTo(tmpDirectory);
         callback();
     }
 }
