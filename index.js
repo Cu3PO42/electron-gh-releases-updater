@@ -5,7 +5,6 @@ var GitHubApi = require("github"),
     fs = require("fs-extra"),
     AdmZip = require("adm-zip-electron"),
     spawn = require("child_process").spawn,
-    execFile = require("child_process").execFile,
     tmp = require("tmp"),
     path = require("path"),
     os = require("os");
@@ -93,13 +92,20 @@ function makeUpdater(releases, packageJson, progressCallback) {
                                 app = require("app");
                             }
                             var updateBat = tmp.tmpNameSync({postfix: ".bat"});
+                            //console.log("spawning update script: " + updateBat + " " + process.pid + " " + tmpPath + " " + path.join(process.resourcesPath, "..") + " " + process.execPath);
                             fs.copySync(path.join(__dirname, "update.bat"), updateBat);
-                            execFile(updateBat, [
+                            spawn("cmd.exe", [
+                                "/c start cmd.exe /c",
+                                updateBat,
                                 process.pid,
                                 tmpPath,
-                                path.join(process.resourcesPath, "../.."),
+                                path.join(process.resourcesPath, ".."),
                                 process.execPath
-                            ]).unref();
+                            ], {
+                                detached: true,
+                                stdio: "ignore",
+                                cwd: "C:\\"
+                            }).unref();
                             app.quit();
                             return;
                         }
