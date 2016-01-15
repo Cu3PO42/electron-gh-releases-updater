@@ -5,6 +5,7 @@ var GitHubApi = require("github"),
     fs = require("fs-extra"),
     AdmZip = require("adm-zip-electron"),
     spawn = require("child_process").spawn,
+    execFile = require("child_process").execFile,
     tmp = require("tmp"),
     path = require("path"),
     os = require("os");
@@ -63,7 +64,7 @@ function makeUpdater(releases, packageJson, progressCallback) {
     }
     var asset = findUpdateAsset(releases[0], fullUpdate);
 
-    function update(callback) {
+    function update() {
         tmp.dir(function(err, tmpPath) {
             progress(request({
                 method: "GET",
@@ -84,22 +85,42 @@ function makeUpdater(releases, packageJson, progressCallback) {
                             fs.move(tmpPath, path.join(process.resourcesPath, "app"), {clobber: true}, callback);
                         }
                     } else {
+                        if (process.platform === "win32") {
+                            var app;
+                            try {
+                                app = require("electron").app;
+                            } catch (e) {
+                                app = require("app");
+                            }
+                            var updateBat = tmp.tmpNameSync({postfix: ".bat"});
+                            fs.copySync(path.join(__dirname, "update.bat"), updateBat);
+                            execFile(updateBat, [
+                                process.pid,
+                                tmpPath,
+                                path.join(process.resourcesPath, "../.."),
+                                process.execPath
+                            ]).unref();
+                            app.quit();
+                            return;
+                        }
                         //console.log("doing a full update");
                         var appPath;
+                        var newPath;
                         if (process.platform === "darwin") {
                             appPath = path.join(process.resourcesPath, "../..");
-                            var newPath = path.join(tmpPath, fs.readdirSync(tmpPath)[0]);
+                            newPath = path.join(tmpPath, fs.readdirSync(tmpPath)[0]);
                             //console.log("moving " + newPath + " to " + appPath);
                             fs.move(newPath, appPath, {clobber: true}, callback);
-                        } else {
-                            if (process.platform === "linux") {
-                                try {
-                                    var newExecPath = path.join(tmpPath, path.basename(process.execPath));
-                                    fs.chmodSync(newExecPath, '755');
-                                } catch(e) {}
-                            }
+                        } else if (process.platform === "linux") {
+                            try {
+                                var newExecPath = path.join(tmpPath, path.basename(process.execPath));
+                                fs.chmodSync(newExecPath, '755');
+                            } catch(e) {}
                             appPath = path.join(process.resourcesPath, "..");
+                            newPath = tmpPath;
                             fs.move(tmpPath, appPath, {clobber: true}, callback);
+                        } else {
+
                         }
                     }
                 });
@@ -143,7 +164,7 @@ module.exports = function(packageJson, callback, progressCallback) {
             }
 
             var i = 0;
-            if (releases.length === 0) 
+            if (releases.length === 0)
                 for (; i < res.length && !isUpdateRelease(res[i]); ++i) { }
 
             for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
