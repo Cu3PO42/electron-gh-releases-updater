@@ -9,6 +9,7 @@
   "typescript": {
     "definition": "./electron-gh-releases-updater.d.ts"
   },
+  "typings": "./electron-gh-releases-updater.d.ts",
   "keywords": [
     "electron",
     "github",
@@ -31,20 +32,6 @@
     "semver": "^5.0.1",
     "tmp": "0.0.26"
   },
-  "gitHead": "4f95df143bcfb4c1aa5d48b3598d5278a58b5c48",
-  "_id": "electron-gh-releases-updater@0.1.0",
-  "_shasum": "fc4b62417f0b5fbeb1f0702f66eb56dfdecc012f",
-  "_from": "electron-gh-releases-updater@>=0.1.0 <0.2.0",
-  "_npmVersion": "2.11.2",
-  "_nodeVersion": "0.12.6",
-  "_npmUser": {
-    "name": "cu3po42",
-    "email": "cu3po42@gmail.com"
-  },
-  "dist": {
-    "shasum": "fc4b62417f0b5fbeb1f0702f66eb56dfdecc012f",
-    "tarball": "http://registry.npmjs.org/electron-gh-releases-updater/-/electron-gh-releases-updater-0.1.0.tgz"
-  },
   "maintainers": [
     {
       "name": "cu3po42",
@@ -52,7 +39,6 @@
     }
   ],
   "directories": {},
-  "_resolved": "https://registry.npmjs.org/electron-gh-releases-updater/-/electron-gh-releases-updater-0.1.0.tgz",
   "devDependencies": {
     "jasmine": "^2.4.1",
     "proxyquire": "^1.7.3"
