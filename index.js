@@ -73,8 +73,10 @@ function makeUpdater(releases, packageJson, progressCallback) {
                 //console.log("downloaded update");
                 unzip(body, tmpPath, function() {
                    //console.log("unzipped");
+                   
                    if (!fullUpdate) {
                        //console.log("not doing a full update");
+                        fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, {encoding: "utf-8"});
                         try {
                             var asarPath = path.join(tmpPath, "app.asar");
                             fs.accessSync(asarPath, fs.F_OK);
@@ -85,6 +87,7 @@ function makeUpdater(releases, packageJson, progressCallback) {
                         }
                     } else {
                         if (process.platform === "win32") {
+                            fs.writeFileSync(path.join(tmpPath, "resources", "UPDATED"), packageJson.version, {encoding: "utf-8"});
                             var app;
                             try {
                                 app = require("electron").app;
@@ -115,8 +118,6 @@ function makeUpdater(releases, packageJson, progressCallback) {
                         if (process.platform === "darwin") {
                             appPath = path.join(process.resourcesPath, "../..");
                             newPath = path.join(tmpPath, fs.readdirSync(tmpPath)[0]);
-                            //console.log("moving " + newPath + " to " + appPath);
-                            fs.move(newPath, appPath, {clobber: true}, callback);
                         } else if (process.platform === "linux") {
                             try {
                                 var newExecPath = path.join(tmpPath, path.basename(process.execPath));
@@ -124,10 +125,17 @@ function makeUpdater(releases, packageJson, progressCallback) {
                             } catch(e) {}
                             appPath = path.join(process.resourcesPath, "..");
                             newPath = tmpPath;
-                            fs.move(tmpPath, appPath, {clobber: true}, callback);
-                        } else {
-
                         }
+                        //console.log("moving " + newPath + " to " + appPath);
+                        fs.move(newPath, appPath, {clobber: true}, function(e) {
+                            if (e) {
+                                callback(e);
+                                return;
+                            }
+                            fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, {encoding: "utf-8"});
+                            callback(null);
+                        });
+
                     }
                 });
             })).on("progress", progressCallback);
