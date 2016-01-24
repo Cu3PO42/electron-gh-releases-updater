@@ -53,17 +53,41 @@ function unzip(data, tmpDirectory, callback) {
     }
 }
 
-function makeUpdater(releases, packageJson, progressCallback) {
-    var fullUpdate = false;
-    for (var i = 0; i < releases.length; ++i) {
-        if (isUpdateRelease(releases[i]) && findUpdateAsset(releases[i], false) === undefined) {
-            fullUpdate = true;
-            break;
+function makeUpdater(releases, packageJson, updateVersion) {
+    var targetIndex = 0;
+    var fullUpdate = undefined;
+    if (updateVersion !== undefined) {
+        fullUpdate = updateVersion.full;
+        var upVer = updateVersion.version;
+        for (var i = 0; i < releases.length && semver.gt(releases[i].tag_name.substring(1), upVer); ++i) {}
+        if (i === releases.length || releases[i].tag_name.substring(1) !== upVer) {
+            return {updateAvailable: false};
+        }
+        targetIndex = i;
+    }
+
+    if(fullUpdate === undefined) {
+        fullUpdate = false;
+        for (var i = targetIndex; i < releases.length; ++i) {
+            if (isUpdateRelease(releases[i]) && findUpdateAsset(releases[i], false) === undefined) {
+                fullUpdate = true;
+                break;
+            }
         }
     }
-    var asset = findUpdateAsset(releases[0], fullUpdate);
+    
+    var asset = findUpdateAsset(releases[targetIndex], fullUpdate);
 
-    function update() {
+    function callback(err) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        child_process.exec(process.execPath, {cwd: prevCwd});
+        app.quit();
+    }
+
+    function update(progressCallback) {
         tmp.dir(function(err, tmpPath) {
             progress(request({
                 method: "GET",
@@ -73,7 +97,7 @@ function makeUpdater(releases, packageJson, progressCallback) {
                 //console.log("downloaded update");
                 unzip(body, tmpPath, function() {
                    //console.log("unzipped");
-                   
+
                    if (!fullUpdate) {
                        //console.log("not doing a full update");
                         fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, {encoding: "utf-8"});
@@ -142,13 +166,13 @@ function makeUpdater(releases, packageJson, progressCallback) {
         });
     }
 
-    return {updateAvailable: true, changelog: getChangelog(releases), update: update};
+    return {updateAvailable: true, changelog: getChangelog(releases, targetIndex), update: update};
 }
 
-function getChangelog(releases) {
+function getChangelog(releases, targetIndex) {
     var changelog = [];
 
-    for (var i = 0; i < releases.length; ++i) {
+    for (var i = targetIndex; i < releases.length; ++i) {
         var body = releases[i].body;
         if (body !== null && body !== undefined && body.length > 0) {
             changelog.push({tag: releases[i].tag_name, name: releases[i].name, body: body});
@@ -158,7 +182,8 @@ function getChangelog(releases) {
     return changelog;
 }
 
-module.exports = function(packageJson, callback, progressCallback) {
+module.exports = {};
+module.exports.default = function(packageJson) {
     if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
         callback("Passed package.json does not contain a valid git repository.");
         return;
@@ -170,32 +195,46 @@ module.exports = function(packageJson, callback, progressCallback) {
     }
     var page = 0;
     var releases = [];
-    function search() {
-        gh.releases.listReleases({owner: m[1], repo: m[2], page: ++page, per_page: 10}, function(err, res) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            var i = 0;
-            if (releases.length === 0)
-                for (; i < res.length && !isUpdateRelease(res[i]); ++i) { }
-
-            for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
-                releases.push(res[i]);
-            }
-
-            if (i == res.length && res.length > 0) {
-                search();
-            } else {
-                if (releases.length === 0) {
-                    callback(null, {updateAvailable: false});
+    return new Promise(function(resolve, reject) {
+        function search() {
+            gh.releases.listReleases({owner: m[1], repo: m[2], page: ++page, per_page: 10}, function(err, res) {
+                if (err) {
+                    reject(err);
                     return;
                 }
 
-                callback(null, makeUpdater(releases, packageJson, progressCallback));
-            }
-        });
-    }
-    search();
+                var i = 0;
+                if (releases.length === 0)
+                    for (; i < res.length && !isUpdateRelease(res[i]); ++i) { }
+
+                for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
+                    releases.push(res[i]);
+                }
+
+                if (i == res.length && res.length > 0) {
+                    search();
+                } else {
+                    if (releases.length === 0) {
+                        resolve({updateAvailable: false});
+                        return;
+                    }
+
+                    gh.repos.getContent({user: m[1], repo: m[2], path: "update-config.json", headers: {"accept": "application/vnd.github.V3.raw"}}, function(err, res) {
+                        if (err) {
+                            resolve(makeUpdater(releases, packageJson));
+                        }
+                        try {
+                            var updates = JSON.parse(res);
+                            if (updates[packageJson.version]) {
+                                resolve(makeUpdater(releases, packageJson, updates[packageJson.version]));
+                                return;
+                            }
+                        } catch (e) {}
+                        resolve(makeUpdater(releases, packageJson));
+                    });
+                }
+            });
+        }
+        search();
+    });
 };

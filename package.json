@@ -6,10 +6,6 @@
   "scripts": {
     "test": "jasmine"
   },
-  "typescript": {
-    "definition": "./electron-gh-releases-updater.d.ts"
-  },
-  "typings": "./electron-gh-releases-updater.d.ts",
   "keywords": [
     "electron",
     "github",

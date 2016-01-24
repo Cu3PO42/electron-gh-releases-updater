@@ -7,7 +7,8 @@ describe("GitHub Releases Electron Updater", function() {
         version: "0.1.0"
     };
 
-    var releaseData; 
+    var releaseData;
+    var updateConfig;
 
     var proxyquire = require("proxyquire");
     var updater = proxyquire("../index.js", {
@@ -16,7 +17,19 @@ describe("GitHub Releases Electron Updater", function() {
 
             GitHub.prototype.releases = {
                 listReleases: function listReleases(params, callback) {
-                    callback(null, releaseData.slice(params.per_page * (params.page-1), params.per_page * params.page));
+                    setImmediate(function() { callback(null, releaseData.slice(params.per_page * (params.page-1), params.per_page * params.page)) });
+                }
+            };
+
+            GitHub.prototype.repos = {
+                getContent: function(options, callback) {
+                    setImmediate(function() {
+                        if (updateConfig === undefined) {
+                            callback("Error");
+                        } else {
+                            callback(null, JSON.stringify(updateConfig));
+                        }
+                    });
                 }
             };
 
@@ -24,7 +37,7 @@ describe("GitHub Releases Electron Updater", function() {
 
             return GitHub;
         })()
-    });
+    }).default;
 
     it("should detect when there is no update available", function(done) {
         releaseData = [
@@ -34,7 +47,7 @@ describe("GitHub Releases Electron Updater", function() {
             }
         ];
 
-        updater(packageJson, function(err, res) {
+        updater(packageJson).then(function(res) {
             expect(res.updateAvailable).toBe(false);
             done();
         });
@@ -54,7 +67,7 @@ describe("GitHub Releases Electron Updater", function() {
             }
         ];
 
-        updater(packageJson, function(err, res) {
+        updater(packageJson).then(function(res) {
             expect(res.updateAvailable).toBe(true);
             done();
         });
@@ -78,7 +91,7 @@ describe("GitHub Releases Electron Updater", function() {
             }
         ];
 
-        updater(packageJson, function(err, res) {
+        updater(packageJson).then(function(res) {
             expect(res.updateAvailable).toBe(true);
             done();
         });
@@ -142,7 +155,7 @@ describe("GitHub Releases Electron Updater", function() {
             }
         ];
 
-        updater(packageJson, function(err, res) {
+        updater(packageJson).then(function(res) {
             expect(res.updateAvailable).toBe(true);
             done();
         });
@@ -176,7 +189,7 @@ describe("GitHub Releases Electron Updater", function() {
             }
         ];
 
-        updater(packageJson, function(err, res) {
+        updater(packageJson).then(function(res) {
             expect(res.updateAvailable).toBe(true);
             expect(res.changelog).toEqual([{tag: "v0.1.3", name: "0.1.3", body: "TEST1"},
                     {tag: "v0.1.2", name: "0.1.2", body: "TEST2"}]);
@@ -248,9 +261,65 @@ describe("GitHub Releases Electron Updater", function() {
             }
         ];
 
-        updater(packageJson, function(err, res) {
+        updater(packageJson).then(function(res) {
             expect(res.updateAvailable).toBe(true);
             expect(res.changelog).toEqual([{tag: "v0.1.12", name: "NAME", body: "TEST"}, {tag: "v0.1.2", name: "NAME", body: "TEST"}]);
+            done();
+        });
+
+    });
+
+    it("should respect an update config", function(done) {
+        releaseData = [
+            {
+                tag_name: "v0.1.12",
+                assets: [
+                    { name: "update-any.zip" }
+                ],
+                name: "NAME",
+                body: "TEST"
+            },
+            {
+                tag_name: "v0.1.11",
+                assets: [
+                    { name: "update-any.zip" }
+                ],
+                name: "NAME",
+                body: "TEST"
+            }
+        ];
+        updateConfig = {
+            "0.1.0": {
+                version: "0.1.11"
+            }
+        };
+
+        updater(packageJson).then(function(res) {
+            expect(res.updateAvailable).toBe(true);
+            expect(res.changelog).toEqual([{tag: "v0.1.11", name: "NAME", body: "TEST"}]);
+            done();
+        });
+    });
+
+    it("should not update when the desired verion is not available", function(done) {
+        releaseData = [
+            {
+                tag_name: "v0.1.12",
+                assets: [
+                    { name: "update-any.zip" }
+                ],
+                name: "NAME",
+                body: "TEST"
+            }
+        ];
+        updateConfig = {
+            "0.1.0": {
+                version: "0.1.11"
+            }
+        };
+
+        updater(packageJson).then(function(res) {
+            expect(res.updateAvailable).toBe(false);
             done();
         });
 
