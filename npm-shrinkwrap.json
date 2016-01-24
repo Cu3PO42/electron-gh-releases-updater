@@ -422,7 +422,7 @@
     "rimraf": {
       "version": "2.5.0",
       "from": "cu3po42/rimraf#electron",
-      "resolved": "git://github.com/cu3po42/rimraf.git#dbd4df8940962697e5621a983e86547ae2c1751c"
+      "resolved": "git://github.com/cu3po42/rimraf.git#65f12b21de68c85683dcfbc8e5220273023e3127"
     },
     "semver": {
       "version": "5.0.1",
