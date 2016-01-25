@@ -5,11 +5,15 @@ var GitHubApi = require("github"),
     fs = require("fs-extra"),
     AdmZip = require("adm-zip-electron"),
     spawn = require("child_process").spawn,
+    exec = require("child_process").exec,
+    app = require("electron").app;
     tmp = require("tmp"),
     path = require("path"),
     os = require("os");
 
 var gh = new GitHubApi({version: "3.0.0"});
+
+var prevCwd = process.cwd();
 
 function isReleaseAsset(asset) {
     var testRegEx = new RegExp("(update-any|" + os.platform() + "-" + os.arch() + ")\.zip");
@@ -75,7 +79,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
             }
         }
     }
-    
+
     var asset = findUpdateAsset(releases[targetIndex], fullUpdate);
 
     function callback(err) {
@@ -83,7 +87,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
             console.log(err);
             return;
         }
-        child_process.exec(process.execPath, {cwd: prevCwd});
+        exec(process.execPath, {cwd: prevCwd});
         app.quit();
     }
 
@@ -162,7 +166,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
 
                     }
                 });
-            })).on("progress", progressCallback);
+            }), {throttle: 50}).on("progress", progressCallback);
         });
     }
 
