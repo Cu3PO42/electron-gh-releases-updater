@@ -140,7 +140,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                         fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, { encoding: "utf-8" });
                         if (process.platform === "darwin") {
                             var plistPath = path.join(path.dirname(process.execPath), "..", "Info.plist");
-                            fs.readFileSync(plistPath, { encoding: "utf-8" }, function(err, plistData) {
+                            fs.readFile(plistPath, { encoding: "utf-8" }, function(err, plistData) {
                                 var infoPlist = plist.parse(plistData);
                                 infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
                                 fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, doUpdate);
