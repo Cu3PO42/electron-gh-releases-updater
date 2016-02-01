@@ -89,6 +89,37 @@ function makeUpdater(releases, packageJson, updateVersion) {
             console.log(err);
             return;
         }
+        if (!fullUpdate) {
+            if (process.platform === "darwin") {
+                var plistPath = path.join(path.dirname(process.execPath), "..", "Info.plist");
+                fs.readFile(plistPath, { encoding: "utf-8" }, function(err, plistData) {
+                    var infoPlist = plist.parse(plistData);
+                    infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
+                    fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, function() {
+                        exec(process.execPath, {cwd: prevCwd});
+                        app.quit();
+                    });
+                });
+                return;
+            } else if (process.platform === "win32") {
+                var updateBat = tmp.tmpNameSync({postfix: ".bat"});
+                fs.copySync(path.join(__dirname, "update.bat"), updateBat);
+                spawn("cmd.exe", [
+                    "/c start cmd.exe /c",
+                    updateBat,
+                    path.join(__dirname, "rcedit.exe"),
+                    process.execPath,
+                    updateVersion.version,
+                    process.pid
+                ], {
+                    detached: true,
+                    stdio: "ignore",
+                    cwd: prevCwd
+                }).unref();
+                app.quit();
+                return;
+            }
+        }
         exec(process.execPath, {cwd: prevCwd});
         app.quit();
     }
@@ -107,52 +138,30 @@ function makeUpdater(releases, packageJson, updateVersion) {
 
                     if (!fullUpdate) {
                         //console.log("not doing a full update");
-                        function doUpdate(err) {
-                            if (err) {
-                                callback(err);
-                                return;
-                            }
-                            try {
-                                var asarPath = path.join(tmpPath, "app.asar");
-                                fs.accessSync(asarPath, fs.F_OK);
-                                fs.move(asarPath, process.resourcesPath, { clobber: true }, function(err) {
-                                    if (err) {
-                                        callback(err);
-                                        return;
-                                    }
-                                    fs.remove(path.join(process.resourcesPath, "app"), function() {
-                                        callback(null);
-                                    });
-                                });
-                            } catch (e) {
-                                //console.log("not an asar, moving folder " + tmpPath + " to " + path.join(process.resourcesPath, "app"));
-                                fs.move(tmpPath, path.join(process.resourcesPath, "app"), { clobber: true }, function(err) {
-                                    if (err) {
-                                        callback(err);
-                                        return;
-                                    }
-                                    fs.remove(path.join(process.resourcesPath, "app.asar"), function() {
-                                        callback(null);
-                                    });
-                                });
-                            }
-                        }
                         fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, { encoding: "utf-8" });
-                        if (process.platform === "darwin") {
-                            var plistPath = path.join(path.dirname(process.execPath), "..", "Info.plist");
-                            fs.readFile(plistPath, { encoding: "utf-8" }, function(err, plistData) {
-                                var infoPlist = plist.parse(plistData);
-                                infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
-                                fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, doUpdate);
+                        try {
+                            var asarPath = path.join(tmpPath, "app.asar");
+                            fs.accessSync(asarPath, fs.F_OK);
+                            fs.move(asarPath, process.resourcesPath, { clobber: true }, function(err) {
+                                if (err) {
+                                    callback(err);
+                                    return;
+                                }
+                                fs.remove(path.join(process.resourcesPath, "app"), function() {
+                                    callback(null);
+                                });
                             });
-                        } else if (process.platform === "win32") {
-                            rcedit(process.execPath, {
-                                "version-string": updateVersion.version,
-                                "file-version": updateVersion.version,
-                                "product-version": updateVersion.version
-                            }, doUpdate);
-                        } else {
-                            doUpdate(null);
+                        } catch (e) {
+                            //console.log("not an asar, moving folder " + tmpPath + " to " + path.join(process.resourcesPath, "app"));
+                            fs.move(tmpPath, path.join(process.resourcesPath, "app"), { clobber: true }, function(err) {
+                                if (err) {
+                                    callback(err);
+                                    return;
+                                }
+                                fs.remove(path.join(process.resourcesPath, "app.asar"), function() {
+                                    callback(null);
+                                });
+                            });
                         }
                     } else {
                         if (process.platform === "win32") {
