@@ -1,6 +1,6 @@
 {
   "name": "electron-gh-releases-updater",
-  "version": "0.2.3",
+  "version": "0.6.1",
   "dependencies": {
     "adm-zip-electron": {
       "version": "0.4.7",
@@ -11,6 +11,11 @@
       "version": "0.3.0",
       "from": "balanced-match@>=0.3.0 <0.4.0",
       "resolved": "https://registry.npmjs.org/balanced-match/-/balanced-match-0.3.0.tgz"
+    },
+    "base64-js": {
+      "version": "0.0.8",
+      "from": "base64-js@0.0.8",
+      "resolved": "https://registry.npmjs.org/base64-js/-/base64-js-0.0.8.tgz"
     },
     "brace-expansion": {
       "version": "1.1.2",
@@ -84,6 +89,11 @@
       "from": "jasmine-core@>=2.4.0 <2.5.0",
       "resolved": "https://registry.npmjs.org/jasmine-core/-/jasmine-core-2.4.1.tgz"
     },
+    "lodash": {
+      "version": "3.10.1",
+      "from": "lodash@>=3.5.0 <4.0.0",
+      "resolved": "https://registry.npmjs.org/lodash/-/lodash-3.10.1.tgz"
+    },
     "lru-cache": {
       "version": "2.7.3",
       "from": "lru-cache@>=2.0.0 <3.0.0",
@@ -113,6 +123,16 @@
       "version": "1.0.0",
       "from": "path-is-absolute@>=1.0.0 <2.0.0",
       "resolved": "https://registry.npmjs.org/path-is-absolute/-/path-is-absolute-1.0.0.tgz"
+    },
+    "plist": {
+      "version": "1.2.0",
+      "from": "plist@*",
+      "resolved": "https://registry.npmjs.org/plist/-/plist-1.2.0.tgz"
+    },
+    "rcedit": {
+      "version": "0.4.0",
+      "from": "rcedit@*",
+      "resolved": "https://registry.npmjs.org/rcedit/-/rcedit-0.4.0.tgz"
     },
     "request": {
       "version": "2.60.0",
@@ -446,9 +466,24 @@
         }
       }
     },
+    "util-deprecate": {
+      "version": "1.0.2",
+      "from": "util-deprecate@1.0.2",
+      "resolved": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz"
+    },
     "wrappy": {
       "version": "1.0.1",
       "from": "wrappy@1.0.1"
+    },
+    "xmlbuilder": {
+      "version": "4.0.0",
+      "from": "xmlbuilder@4.0.0",
+      "resolved": "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-4.0.0.tgz"
+    },
+    "xmldom": {
+      "version": "0.1.22",
+      "from": "xmldom@>=0.1.0 <0.2.0",
+      "resolved": "https://registry.npmjs.org/xmldom/-/xmldom-0.1.22.tgz"
     }
   }
 }

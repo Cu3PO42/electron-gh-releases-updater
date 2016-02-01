@@ -9,6 +9,8 @@ var GitHubApi = require("github"),
     app = require("electron").app;
     tmp = require("tmp"),
     path = require("path"),
+    plist = require("plist"),
+    rcedit = require("rcedit"),
     os = require("os");
 
 var gh = new GitHubApi({version: "3.0.0"});
@@ -70,7 +72,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
         targetIndex = i;
     }
 
-    if(fullUpdate === undefined) {
+    if (fullUpdate === undefined) {
         fullUpdate = false;
         for (var i = targetIndex; i < releases.length; ++i) {
             if (isUpdateRelease(releases[i]) && findUpdateAsset(releases[i], false) === undefined) {
@@ -96,26 +98,47 @@ function makeUpdater(releases, packageJson, updateVersion) {
             progress(request({
                 method: "GET",
                 uri: asset.browser_download_url,
-                gzip: true, encoding: null
+                gzip: true,
+                encoding: null
             }, function(error, response, body) {
                 //console.log("downloaded update");
                 unzip(body, tmpPath, function() {
-                   //console.log("unzipped");
+                    //console.log("unzipped");
 
-                   if (!fullUpdate) {
-                       //console.log("not doing a full update");
-                        fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, {encoding: "utf-8"});
-                        try {
-                            var asarPath = path.join(tmpPath, "app.asar");
-                            fs.accessSync(asarPath, fs.F_OK);
-                            fs.move(asarPath, process.resourcesPath, {clobber: true}, callback);
-                        } catch(e) {
-                            //console.log("not an asar, moving folder " + tmpPath + " to " + path.join(process.resourcesPath, "app"));
-                            fs.move(tmpPath, path.join(process.resourcesPath, "app"), {clobber: true}, callback);
+                    if (!fullUpdate) {
+                        //console.log("not doing a full update");
+                        function doUpdate() {
+                            try {
+                                var asarPath = path.join(tmpPath, "app.asar");
+                                fs.accessSync(asarPath, fs.F_OK);
+                                fs.move(asarPath, process.resourcesPath, { clobber: true }, callback);
+                            } catch (e) {
+                                //console.log("not an asar, moving folder " + tmpPath + " to " + path.join(process.resourcesPath, "app"));
+                                fs.move(tmpPath, path.join(process.resourcesPath, "app"), { clobber: true }, callback);
+                            }
+                        }
+                        fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, { encoding: "utf-8" });
+                        if (process.platform === "darwin") {
+                            var plistPath = path.join(path.dirname(process.execPath), "..", "Info.plist");
+                            fs.readFileSync(plistPath, { encoding: "utf-8" }, function(err, plistData) {
+                                var infoPlist = plist.parse(plistData);
+                                infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
+                                fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, doUpdate);
+                            });
+                        } else(process.platform === "win32") {
+                            rcedit(process.execPath, {
+                                "version-string": updateVersion.version,
+                                "file-version": updateVersion.version,
+                                "product-version": updateVersion.version
+                            }, doUpdate);
+                        } else {
+                            doUpdate(null);
                         }
                     } else {
                         if (process.platform === "win32") {
-                            fs.writeFileSync(path.join(tmpPath, "resources", "UPDATED"), packageJson.version, {encoding: "utf-8"});
+                            fs.writeFileSync(path.join(tmpPath, "resources", "UPDATED"), packageJson.version, {
+                                encoding: "utf-8"
+                            });
                             var app;
                             try {
                                 app = require("electron").app;
@@ -150,7 +173,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                             try {
                                 var newExecPath = path.join(tmpPath, path.basename(process.execPath));
                                 fs.chmodSync(newExecPath, '755');
-                            } catch(e) {}
+                            } catch (e) {}
                             appPath = path.join(process.resourcesPath, "..");
                             newPath = tmpPath;
                         }
@@ -170,7 +193,11 @@ function makeUpdater(releases, packageJson, updateVersion) {
         });
     }
 
-    return {updateAvailable: true, changelog: getChangelog(releases, targetIndex), update: update};
+    return {
+        updateAvailable: true,
+        changelog: getChangelog(releases, targetIndex),
+        update: update
+    };
 }
 
 function getChangelog(releases, targetIndex) {
@@ -179,7 +206,11 @@ function getChangelog(releases, targetIndex) {
     for (var i = targetIndex; i < releases.length; ++i) {
         var body = releases[i].body;
         if (body !== null && body !== undefined && body.length > 0) {
-            changelog.push({tag: releases[i].tag_name, name: releases[i].name, body: body});
+            changelog.push({
+                tag: releases[i].tag_name,
+                name: releases[i].name,
+                body: body
+            });
         }
     }
 
@@ -201,7 +232,12 @@ module.exports.default = function(packageJson) {
     var releases = [];
     return new Promise(function(resolve, reject) {
         function search() {
-            gh.releases.listReleases({owner: m[1], repo: m[2], page: ++page, per_page: 10}, function(err, res) {
+            gh.releases.listReleases({
+                owner: m[1],
+                repo: m[2],
+                page: ++page,
+                per_page: 10
+            }, function(err, res) {
                 if (err) {
                     reject(err);
                     return;
@@ -209,7 +245,7 @@ module.exports.default = function(packageJson) {
 
                 var i = 0;
                 if (releases.length === 0)
-                    for (; i < res.length && !isUpdateRelease(res[i]); ++i) { }
+                    for (; i < res.length && !isUpdateRelease(res[i]); ++i) {}
 
                 for (; i < res.length && semver.gt(res[i].tag_name.substring(1), packageJson.version); ++i) {
                     releases.push(res[i]);
@@ -223,7 +259,14 @@ module.exports.default = function(packageJson) {
                         return;
                     }
 
-                    gh.repos.getContent({user: m[1], repo: m[2], path: "update-config.json", headers: {"accept": "application/vnd.github.V3.raw"}}, function(err, res) {
+                    gh.repos.getContent({
+                        user: m[1],
+                        repo: m[2],
+                        path: "update-config.json",
+                        headers: {
+                            "accept": "application/vnd.github.V3.raw"
+                        }
+                    }, function(err, res) {
                         if (err) {
                             resolve(makeUpdater(releases, packageJson));
                         }
