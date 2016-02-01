@@ -6,7 +6,7 @@ var GitHubApi = require("github"),
     AdmZip = require("adm-zip-electron"),
     spawn = require("child_process").spawn,
     exec = require("child_process").exec,
-    app = require("electron").app;
+    app = require("electron").app,
     tmp = require("tmp"),
     path = require("path"),
     plist = require("plist"),
@@ -145,7 +145,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                                 infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
                                 fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, doUpdate);
                             });
-                        } else(process.platform === "win32") {
+                        } else if (process.platform === "win32") {
                             rcedit(process.execPath, {
                                 "version-string": updateVersion.version,
                                 "file-version": updateVersion.version,
