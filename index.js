@@ -107,14 +107,34 @@ function makeUpdater(releases, packageJson, updateVersion) {
 
                     if (!fullUpdate) {
                         //console.log("not doing a full update");
-                        function doUpdate() {
+                        function doUpdate(err) {
+                            if (err) {
+                                callback(err);
+                                return;
+                            }
                             try {
                                 var asarPath = path.join(tmpPath, "app.asar");
                                 fs.accessSync(asarPath, fs.F_OK);
-                                fs.move(asarPath, process.resourcesPath, { clobber: true }, callback);
+                                fs.move(asarPath, process.resourcesPath, { clobber: true }, function(err) {
+                                    if (err) {
+                                        callback(err);
+                                        return;
+                                    }
+                                    fs.remove(path.join(process.resourcesPath, "app"), function() {
+                                        callback(null);
+                                    });
+                                });
                             } catch (e) {
                                 //console.log("not an asar, moving folder " + tmpPath + " to " + path.join(process.resourcesPath, "app"));
-                                fs.move(tmpPath, path.join(process.resourcesPath, "app"), { clobber: true }, callback);
+                                fs.move(tmpPath, path.join(process.resourcesPath, "app"), { clobber: true }, function(err) {
+                                    if (err) {
+                                        callback(err);
+                                        return;
+                                    }
+                                    fs.remove(path.join(process.resourcesPath, "app.asar"), function() {
+                                        callback(null);
+                                    });
+                                });
                             }
                         }
                         fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, { encoding: "utf-8" });
