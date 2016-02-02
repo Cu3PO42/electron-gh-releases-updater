@@ -89,6 +89,8 @@ function makeUpdater(releases, packageJson, updateVersion) {
     if (process.platform === "win32") {
         var setVersionBat = tmp.tmpNameSync({postfix: ".bat"});
         fs.copySync(path.join(__dirname, "setversion.bat"), setVersionBat);
+        var rceditExe = tmp.tmpNameSync({postfix: ".exe"});
+        fs.copySync(path.join(__dirname, "rcedit.exe"), rceditExe);
     }
 
     function callback(err) {
@@ -112,7 +114,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                 spawn("cmd.exe", [
                     "/c start cmd.exe /c",
                     setVersionBat,
-                    path.join(__dirname, "rcedit.exe"),
+                    rceditExe,
                     process.execPath,
                     updateVersion.version,
                     process.pid

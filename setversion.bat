@@ -24,6 +24,8 @@ echo Process closed.
 echo Setting version string of %execPath% to %versionNumber%.
 %rcedit% %execPath% --set-file-version %versionNumber% --set-product-version %versionNumber% --set-version-string %versionNumber%
 echo Set version string.
+echo Deleting rcedit.
+del %rcedit%
 echo Restarting %execPath%.
 start "" %execPath%
 del "%~f0"
