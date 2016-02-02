@@ -13,6 +13,7 @@ var GitHubApi = require("github"),
     os = require("os");
 
 var gh = new GitHubApi({version: "3.0.0"});
+plist.build({foo: "bar"}); // call this function so it requires all of its dependencies
 
 var prevCwd = process.cwd();
 
@@ -61,7 +62,6 @@ function unzip(data, tmpDirectory, callback) {
 function makeUpdater(releases, packageJson, updateVersion) {
     var targetIndex = 0;
     var fullUpdate = undefined;
-    updateVersion = { version: "0.4.0"};
     if (updateVersion !== undefined) {
         fullUpdate = updateVersion.full;
         var upVer = updateVersion.version;
@@ -82,8 +82,6 @@ function makeUpdater(releases, packageJson, updateVersion) {
         }
     }
 
-    fullUpdate = false;
-
     var asset = findUpdateAsset(releases[targetIndex], fullUpdate);
 
     if (process.platform === "win32") {
@@ -91,6 +89,18 @@ function makeUpdater(releases, packageJson, updateVersion) {
         fs.copySync(path.join(__dirname, "setversion.bat"), setVersionBat);
         var rceditExe = tmp.tmpNameSync({postfix: ".exe"});
         fs.copySync(path.join(__dirname, "rcedit.exe"), rceditExe);
+    }
+
+    function restartSh() {
+        spawn("sh", [
+            "-c",
+            "while kill -0 \"" + process.pid + "\"; do; sleep 1; done; \"" + process.execPath + "\" &"
+        ], {
+            detached: true,
+            stdio: "ignore",
+            cwd: prevCwd
+        }).unref();
+        app.quit();
     }
 
     function callback(err) {
@@ -104,10 +114,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                 fs.readFile(plistPath, { encoding: "utf-8" }, function(err, plistData) {
                     var infoPlist = plist.parse(plistData);
                     infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
-                    fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, function() {
-                        exec(process.execPath, {cwd: prevCwd});
-                        app.quit();
-                    });
+                    fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, restartSh);
                 });
                 return;
             } else if (process.platform === "win32") {
@@ -127,8 +134,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                 return;
             }
         }
-        exec(process.execPath, {cwd: prevCwd});
-        app.quit();
+        restartSh();
     }
 
     function update(progressCallback) {
