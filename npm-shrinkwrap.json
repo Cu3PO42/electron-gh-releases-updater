@@ -1,6 +1,6 @@
 {
   "name": "electron-gh-releases-updater",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "dependencies": {
     "adm-zip-electron": {
       "version": "0.4.7",
@@ -128,11 +128,6 @@
       "version": "1.2.0",
       "from": "plist@*",
       "resolved": "https://registry.npmjs.org/plist/-/plist-1.2.0.tgz"
-    },
-    "rcedit": {
-      "version": "0.4.0",
-      "from": "rcedit@*",
-      "resolved": "https://registry.npmjs.org/rcedit/-/rcedit-0.4.0.tgz"
     },
     "request": {
       "version": "2.60.0",
