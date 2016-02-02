@@ -10,7 +10,6 @@ var GitHubApi = require("github"),
     tmp = require("tmp"),
     path = require("path"),
     plist = require("plist"),
-    rcedit = require("rcedit"),
     os = require("os");
 
 var gh = new GitHubApi({version: "3.0.0"});
@@ -62,6 +61,7 @@ function unzip(data, tmpDirectory, callback) {
 function makeUpdater(releases, packageJson, updateVersion) {
     var targetIndex = 0;
     var fullUpdate = undefined;
+    updateVersion = { version: "0.4.0"};
     if (updateVersion !== undefined) {
         fullUpdate = updateVersion.full;
         var upVer = updateVersion.version;
@@ -82,7 +82,14 @@ function makeUpdater(releases, packageJson, updateVersion) {
         }
     }
 
+    fullUpdate = false;
+
     var asset = findUpdateAsset(releases[targetIndex], fullUpdate);
+
+    if (process.platform === "win32") {
+        var setVersionBat = tmp.tmpNameSync({postfix: ".bat"});
+        fs.copySync(path.join(__dirname, "setversion.bat"), setVersionBat);
+    }
 
     function callback(err) {
         if (err) {
@@ -102,11 +109,9 @@ function makeUpdater(releases, packageJson, updateVersion) {
                 });
                 return;
             } else if (process.platform === "win32") {
-                var updateBat = tmp.tmpNameSync({postfix: ".bat"});
-                fs.copySync(path.join(__dirname, "update.bat"), updateBat);
                 spawn("cmd.exe", [
                     "/c start cmd.exe /c",
-                    updateBat,
+                    setVersionBat,
                     path.join(__dirname, "rcedit.exe"),
                     process.execPath,
                     updateVersion.version,
