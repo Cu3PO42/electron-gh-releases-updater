@@ -22,10 +22,11 @@ echo Waiting for process %pid% to end.
 call :WAITPROC %pid%
 echo Process closed.
 echo Setting version string of %execPath% to %versionNumber%.
-%rcedit% %execPath% --set-file-version %versionNumber% --set-product-version %versionNumber% --set-version-string %versionNumber%
+%rcedit% %execPath% --set-file-version %versionNumber% --set-product-version %versionNumber%
 echo Set version string.
 echo Deleting rcedit.
 del %rcedit%
 echo Restarting %execPath%.
+echo In case your application does not start again, feel free to close this window and restart it manually.
 start "" %execPath%
 del "%~f0"

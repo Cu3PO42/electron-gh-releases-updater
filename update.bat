@@ -40,5 +40,6 @@ call :SAFEDELETEPROC %appFolder%
 echo Deleted %appFolder%. Moving %tempFolder% there.
 move /y %tempFolder% %appFolder%
 echo Restarting application %execPath%.
+echo In case your application does not start again, feel free to close this window and restart it manually.
 start "" %execPath%
 del "%~f0"
