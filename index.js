@@ -94,7 +94,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
     function restartSh() {
         spawn("sh", [
             "-c",
-            "while kill -0 \"" + process.pid + "\"; do; sleep 1; done; \"" + process.execPath + "\" &"
+            "while kill -0 \"" + process.pid + "\"; do sleep 1; done; \"" + process.execPath + "\" &"
         ], {
             detached: true,
             stdio: "ignore",
