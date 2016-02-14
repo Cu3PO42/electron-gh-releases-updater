@@ -1,6 +1,6 @@
 {
   "name": "electron-gh-releases-updater",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Updates an app based on GH Electron from GH releases.",
   "main": "index.js",
   "scripts": {
