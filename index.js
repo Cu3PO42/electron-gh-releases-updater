@@ -62,9 +62,10 @@ function unzip(data, tmpDirectory, callback) {
 function makeUpdater(releases, packageJson, updateVersion) {
     var targetIndex = 0;
     var fullUpdate = undefined;
+    var upVer = undefined;
     if (updateVersion !== undefined) {
         fullUpdate = updateVersion.full;
-        var upVer = updateVersion.version;
+        upVer = updateVersion.version;
         for (var i = 0; i < releases.length && semver.gt(releases[i].tag_name.substring(1), upVer); ++i) {}
         if (i === releases.length || releases[i].tag_name.substring(1) !== upVer) {
             return {updateAvailable: false};
@@ -80,6 +81,10 @@ function makeUpdater(releases, packageJson, updateVersion) {
                 break;
             }
         }
+    }
+
+    if (upVer === undefined) {
+        upVer = releases[targetIndex].tag_name.substring(1);
     }
 
     var asset = findUpdateAsset(releases[targetIndex], fullUpdate);
@@ -113,7 +118,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                 var plistPath = path.join(path.dirname(process.execPath), "..", "Info.plist");
                 fs.readFile(plistPath, { encoding: "utf-8" }, function(err, plistData) {
                     var infoPlist = plist.parse(plistData);
-                    infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = updateVersion.version;
+                    infoPlist.CFBundleShortVersionString = infoPlist.CFBundleVersion = upVer;
                     fs.writeFile(plistPath, plist.build(infoPlist), { encoding: "utf-8" }, restartSh);
                 });
                 return;
@@ -123,7 +128,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                     setVersionBat,
                     rceditExe,
                     process.execPath,
-                    updateVersion.version,
+                    upVer,
                     process.pid
                 ], {
                     detached: true,
