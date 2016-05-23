@@ -264,8 +264,12 @@ function getChangelog(releases, targetIndex) {
     return changelog;
 }
 
-module.exports = {};
-module.exports.default = function(packageJson) {
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+exports.default = function(packageJson) {
     if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
         callback("Passed package.json does not contain a valid git repository.");
         return;
