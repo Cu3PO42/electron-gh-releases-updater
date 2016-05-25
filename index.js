@@ -3,6 +3,7 @@ var GitHubApi = require("github"),
     request = require("request"),
     progress = require("request-progress"),
     fs = require("fs-extra"),
+    originalFs = require("original-fs"),
     AdmZip = require("adm-zip-electron"),
     spawn = require("child_process").spawn,
     exec = require("child_process").exec,
@@ -159,14 +160,16 @@ function makeUpdater(releases, packageJson, updateVersion) {
                         fs.writeFileSync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, { encoding: "utf-8" });
                         try {
                             var asarPath = path.join(tmpPath, "app.asar");
-                            fs.accessSync(asarPath, fs.F_OK);
-                            fs.move(asarPath, process.resourcesPath, { clobber: true }, function(err) {
-                                if (err) {
-                                    callback(err);
-                                    return;
-                                }
-                                fs.remove(path.join(process.resourcesPath, "app"), function() {
-                                    callback(null);
+                            originalFs.accessSync(asarPath, fs.F_OK);
+                            originalFs.unlink(path.join(process.resourcesPath, "app.asar"), function() {
+                                originalFs.rename(asarPath, path.join(process.resourcesPath, "app.asar"), function(err) {
+                                    if (err) {
+                                        callback(err);
+                                        return;
+                                    }
+                                    fs.remove(path.join(process.resourcesPath, "app"), function() {
+                                        callback(null);
+                                    });
                                 });
                             });
                         } catch (e) {
@@ -176,7 +179,7 @@ function makeUpdater(releases, packageJson, updateVersion) {
                                     callback(err);
                                     return;
                                 }
-                                fs.remove(path.join(process.resourcesPath, "app.asar"), function() {
+                                originalFs.unlink(path.join(process.resourcesPath, "app.asar"), function() {
                                     callback(null);
                                 });
                             });
