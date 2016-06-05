@@ -4,7 +4,8 @@
   "description": "Updates an app based on GH Electron from GH releases.",
   "main": "index.js",
   "scripts": {
-    "test": "jasmine"
+    "test": "jasmine",
+    "build": "babel -d src lib"
   },
   "keywords": [
     "electron",
@@ -37,6 +38,12 @@
   ],
   "directories": {},
   "devDependencies": {
+    "babel-cli": "^6.9.0",
+    "babel-core": "^6.9.1",
+    "babel-plugin-transform-async-to-generator": "^6.8.0",
+    "babel-plugin-transform-class-properties": "^6.9.1",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-es2015-node": "^6.0.1",
     "jasmine": "^2.4.1",
     "proxyquire": "^1.7.3"
   },
