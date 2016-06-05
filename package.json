@@ -2,10 +2,10 @@
   "name": "electron-gh-releases-updater",
   "version": "0.7.3",
   "description": "Updates an app based on GH Electron from GH releases.",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "jasmine",
-    "build": "babel -d src lib"
+    "build": "babel src -d lib"
   },
   "keywords": [
     "electron",
@@ -21,7 +21,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "adm-zip-electron": "^0.4.7",
     "bluebird": "^3.4.0",
     "fs-extra": "^0.22.1",
     "github": "^0.2.4",

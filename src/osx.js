@@ -2,7 +2,7 @@ import path from 'path';
 import Promise from 'bluebird';
 import plist from 'plist';
 import * as fs from 'original-fs';
-import { restart, doFullUpdate } from 'nix';
+import { restart, doFullUpdate as doFullUpdateNix } from 'nix';
 
 plist.build({ foo: 'bar' }); // call this so it requires all of its dependencies
 
@@ -15,7 +15,7 @@ export { unzip } from './nix';
 export async function doFullUpdate(updatePath, currentVersion) {
   const appPath = path.join(process.resourcesPath, '..', '..');
   const newPath = path.join(updatePath, (await readdirAsync(updatePath))[0]);
-  doFullUpdate(appPath, newPath, currentVersion);
+  doFullUpdateNix(appPath, newPath, currentVersion);
 }
 
 export async function setVersionNumberAndRestart(updateVersion) {

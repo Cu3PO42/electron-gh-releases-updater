@@ -58,7 +58,7 @@ async function downloadAsset(asset, progressCallback) {
 }
 
 function makeFullUpdater(asset, updateVersion, currentVersion) {
-  return (progressCallback) => {
+  return async (progressCallback) => {
     const updatePath = await downloadAsset(asset);
     await platform.doFullUpdate(updatePath, currentVersion);
   };
@@ -82,13 +82,13 @@ function exists(file) {
 }
 
 function makeNoneFullUpdater(asset, updateVersion, currentVersion) {
-  return (progressCallback) => {
+  return async (progressCallback) => {
     const updatePath = await downloadAsset(asset);
 
     // Move the update to its desitnation and remove old folders
     const currentAsar = path.join(process.resourcesPath, 'app.asar');
     const currentApp = path.join(process.resourcesPath, 'app');
-    if (updateIsAsar(updatePath)) {
+    if (await updateIsAsar(updatePath)) {
       const updateAsar = path.join(updatePath, 'app.asar');
       if (await exists(currentAsar)) {
         await unlinkAsync(currentAsar);

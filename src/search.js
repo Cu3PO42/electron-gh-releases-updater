@@ -32,7 +32,7 @@ export default async function searchForUpdate(packageJson) {
     }
 
     // Copy all releases newer than the current one
-    for (; i < releasePage.length; semver.gt(getVersionFromRelease(releasePage[i]), packageJson.version); ++i) {
+    for (; i < releasePage.length && semver.gt(getVersionFromRelease(releasePage[i]), packageJson.version); ++i) {
       releases.push(releasePage[i]);
     }
 
