@@ -57,10 +57,10 @@ async function downloadAsset(asset, progressCallback) {
   return tmpDir;
 }
 
-function makeFullUpdater(asset) {
+function makeFullUpdater(asset, updateVersion, currentVersion) {
   return (progressCallback) => {
     const updatePath = await downloadAsset(asset);
-    await platform.doFullUpdate(updatePath);
+    await platform.doFullUpdate(updatePath, currentVersion);
   };
 }
 
@@ -81,7 +81,7 @@ function exists(file) {
   });
 }
 
-function makeNoneFullUpdater(asset, updateVersion) {
+function makeNoneFullUpdater(asset, updateVersion, currentVersion) {
   return (progressCallback) => {
     const updatePath = await downloadAsset(asset);
 
@@ -127,6 +127,6 @@ export default function makeUpdater(releases, packageJson, updateVersion) {
   return {
     updateAvailable: true,
     changelog: getChangelog(releases),
-    update: fullUpdate ? makeFullUpdater(asset, upVer) : makeNoneFullUpdater(asset, upVer)
+    update: fullUpdate ? makeFullUpdater(asset, upVer, packageJson.version) : makeNoneFullUpdater(asset, upVer, packageJson.version)
   };
 }
