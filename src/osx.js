@@ -2,7 +2,7 @@ import path from 'path';
 import Promise from 'bluebird';
 import plist from 'plist';
 import * as fs from 'original-fs';
-import { restart, doFullUpdate as doFullUpdateNix } from 'nix';
+import { restart, doFullUpdate as doFullUpdateNix } from './nix';
 
 plist.build({ foo: 'bar' }); // call this so it requires all of its dependencies
 

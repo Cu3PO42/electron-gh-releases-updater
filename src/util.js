@@ -1,3 +1,5 @@
+import os from 'os';
+
 const releaseAssetRegEx = new RegExp("(update-any|" + os.platform() + "-" + os.arch() + ")\.zip");
 function isReleaseAsset(asset) {
   return asset.name.match(releaseAssetRegEx);

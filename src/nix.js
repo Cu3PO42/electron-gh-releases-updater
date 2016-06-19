@@ -1,6 +1,7 @@
 import * as fse from 'fs-extra';
 import { spawn } from 'child_process';
 import Promise from 'bluebird';
+import { app } from 'electron';
 
 const moveAsync = Promise.promisify(fse.move);
 const writeFileAsync = Promise.promisify(fse.writeFile);
@@ -18,7 +19,7 @@ export function restart() {
   ], {
     detached: true,
     stdio: "ignore",
-    cwd: prevCwd
+    cwd: process.cwd()
   }).unref();
   app.quit();
 }

@@ -5,8 +5,8 @@ import { isUpdateRelease, getVersionFromRelease } from './util';
 import makeUpdater from './updater';
 
 const gh = new GitHubApi({ version: '3.0.0' });
-const getReleases = Promise.promisify(gh.repos.getReleases);
-const getContent = Promise.promisify(gh.repos.getContent);
+const getReleases = Promise.promisify(gh.repos.getReleases.bind(gh.repos));
+const getContent = Promise.promisify(gh.repos.getContent.bind(gh.repos));
 
 export default async function searchForUpdate(packageJson) {
   if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
@@ -19,7 +19,7 @@ export default async function searchForUpdate(packageJson) {
   const releases = [];
   for (let page = 0;;++page) {
     const releasePage = await getReleases({
-      owner: m[1],
+      user: m[1],
       repo: m[2],
       per_page: 10,
       page
@@ -40,29 +40,29 @@ export default async function searchForUpdate(packageJson) {
     if (i < releasePage.length || releasePage.length === 0) {
       break;
     }
+  }
 
-    if (!releases.length) {
-      return { updateAvailable: false };
-    }
+  if (!releases.length) {
+    return { updateAvailable: false };
+  }
 
-    try {
-      const updateConfig = await getContent({
-        user: m[1],
-        repo: m[2],
-        path: 'update-config.json',
-        headers: {
-          'accept': 'application/vnd.github.V3.raw'
-        }
-      });
-
-      const updates = JSON.parse(updateConfig);
-      if (updates[packageJson.version]) {
-        return makeUpdater(releases, packageJson, updates[packageJson.version]);
-      } else {
-        return makeUpdater(releases, packageJson);
+  try {
+    const updateConfig = await getContent({
+      user: m[1],
+      repo: m[2],
+      path: 'update-config.json',
+      headers: {
+        'accept': 'application/vnd.github.V3.raw'
       }
-    } catch(e) {
+    });
+
+    const updates = JSON.parse(updateConfig);
+    if (updates[packageJson.version]) {
+      return makeUpdater(releases, packageJson, updates[packageJson.version]);
+    } else {
       return makeUpdater(releases, packageJson);
     }
+  } catch(e) {
+    return makeUpdater(releases, packageJson);
   }
 }

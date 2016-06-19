@@ -48,7 +48,7 @@ async function downloadAsset(asset, progressCallback) {
     .on('progress', progressCallback)
     .on('err', reject)
     .pipe(fs.createWriteStream(tmpFile))
-    .on('end', resolve)
+    .on('close', resolve)
   });
 
   await platform.unzip(tmpFile, tmpDir);
@@ -59,7 +59,7 @@ async function downloadAsset(asset, progressCallback) {
 
 function makeFullUpdater(asset, updateVersion, currentVersion) {
   return async (progressCallback) => {
-    const updatePath = await downloadAsset(asset);
+    const updatePath = await downloadAsset(asset, progressCallback);
     await platform.doFullUpdate(updatePath, currentVersion);
   };
 }
@@ -83,7 +83,7 @@ function exists(file) {
 
 function makeNoneFullUpdater(asset, updateVersion, currentVersion) {
   return async (progressCallback) => {
-    const updatePath = await downloadAsset(asset);
+    const updatePath = await downloadAsset(asset, progressCallback);
 
     // Move the update to its desitnation and remove old folders
     const currentAsar = path.join(process.resourcesPath, 'app.asar');
@@ -99,12 +99,12 @@ function makeNoneFullUpdater(asset, updateVersion, currentVersion) {
     } else {
       await moveAsync(updatePath, currentApp, { clobber: true });
       if (await exists(currentAsar)) {
-        await unlink(currentAsar);
+        await unlinkAsync(currentAsar);
       }
     }
 
     // Patch version numbers, etc
-    await writeFileAsync(path.join(process.resourcesPath, "UPDATED"), packageJson.version, { encoding: "utf-8" });
+    await writeFileAsync(path.join(process.resourcesPath, "UPDATED"), currentVersion, { encoding: "utf-8" });
     await platform.setVersionNumberAndRestart(updateVersion)
   };
 }
@@ -127,6 +127,6 @@ export default function makeUpdater(releases, packageJson, updateVersion) {
   return {
     updateAvailable: true,
     changelog: getChangelog(releases),
-    update: fullUpdate ? makeFullUpdater(asset, upVer, packageJson.version) : makeNoneFullUpdater(asset, upVer, packageJson.version)
+    update: (fullUpdate ? makeFullUpdater : makeNoneFullUpdater)(asset, upVer, packageJson.version)
   };
 }
