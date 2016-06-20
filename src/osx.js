@@ -18,6 +18,9 @@ export async function doFullUpdate(updatePath, currentVersion) {
   doFullUpdateNix(appPath, newPath, currentVersion);
 }
 
+export async function prepareRestart() {
+}
+
 export async function setVersionNumberAndRestart(updateVersion) {
   const plistPath = path.join(path.dirname(process.execPath), '..', 'Info.plist');
   const plistData = await readFileAsync(plistPath, 'utf-8');

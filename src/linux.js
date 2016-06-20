@@ -7,6 +7,9 @@ const chmodAsync = Promise.promisify(fs.chmod);
 
 export { unzip } from './nix';
 
+export async function prepareRestart() {
+}
+
 export async function setVersionNumberAndRestart() {
   restart();
 }

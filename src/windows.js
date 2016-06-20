@@ -16,8 +16,8 @@ export function unzip(zipFile, destination) {
     spawn('powershell.exe', [
       '[Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem"); ' +
       '[System.IO.Compression.ZipFile]::ExtractToDirectory(' +
-        zipFile + ', ' +
-        destination + ');'
+        `"${zipFile}", ` +
+        `"${destination}");`
     ], { stdio: 'ignore' }).on('close', resolve);
   });
 }
@@ -41,13 +41,16 @@ export async function doFullUpdate(updatePath, currentVersion) {
   app.quit();
 }
 
-export async function setVersionNumberAndRestart(updateVersion) {
-  const setVersionBatPath = await tmpNameAsync({ postfix: '.bat' });
-  const rceditExePath = await tmpNameAsync({ postfix: '.exe' });
+let setVersionBatPath, rceditExePath;
+export async function prepareRestart() {
+  setVersionBatPath = await tmpNameAsync({ postfix: '.bat' });
+  rceditExePath = await tmpNameAsync({ postfix: '.exe' });
 
   await copyAsync(path.join(__dirname, '..', 'setversion.bat'), setVersionBatPath);
   await copyAsync(path.join(__dirname, '..', 'rcedit.exe'), rceditExePath);
+}
 
+export async function setVersionNumberAndRestart(updateVersion) {
   spawn('cmd.exe', [
     '/c start cmd.exe /c',
     setVersionBatPath,
