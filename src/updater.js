@@ -84,6 +84,7 @@ function exists(file) {
 function makeNoneFullUpdater(asset, updateVersion, currentVersion) {
   return async (progressCallback) => {
     const updatePath = await downloadAsset(asset, progressCallback);
+    await platform.prepareRestart();
 
     // Move the update to its desitnation and remove old folders
     const currentAsar = path.join(process.resourcesPath, 'app.asar');
