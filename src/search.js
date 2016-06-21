@@ -1,12 +1,31 @@
-import GitHubApi from 'github';
 import semver from 'semver';
 import Promise from 'bluebird';
 import { isUpdateRelease, getVersionFromRelease } from './util';
 import makeUpdater from './updater';
+import request from 'request';
 
-const gh = new GitHubApi({ version: '3.0.0' });
-const getReleases = Promise.promisify(gh.repos.getReleases.bind(gh.repos));
-const getContent = Promise.promisify(gh.repos.getContent.bind(gh.repos));
+function queryGithub(endpoint, headers) {
+  return new Promise((resolve, reject) => {
+    request({
+      baseUrl: 'https://api.github.com/',
+      url: endpoint,
+      headers: {
+        'User-Agent': 'electron-gh-releases-updater',
+        ...headers
+      }
+    }, (err, res, body) => {
+      if (err || res.statusCode !== 200) {
+        reject(err);
+        return;
+      }
+      if (res.headers['content-type'].startsWith('application/json')) {
+        resolve(JSON.parse(body));
+      } else {
+        resolve(body);
+      }
+    });
+  });
+}
 
 export default async function searchForUpdate(packageJson) {
   if (packageJson.repository === undefined || packageJson.repository.type !== "git" || packageJson.repository.url === undefined) {
@@ -18,12 +37,7 @@ export default async function searchForUpdate(packageJson) {
   }
   const releases = [];
   for (let page = 0;;++page) {
-    const releasePage = await getReleases({
-      user: m[1],
-      repo: m[2],
-      per_page: 10,
-      page
-    });
+    const releasePage = await queryGithub(`/repos/${m[1]}/${m[2]}/releases?per_page=10&page=${page}`);
 
     let i = 0;
     if (!releases.length) {
@@ -47,13 +61,8 @@ export default async function searchForUpdate(packageJson) {
   }
 
   try {
-    const updateConfig = await getContent({
-      user: m[1],
-      repo: m[2],
-      path: 'update-config.json',
-      headers: {
-        'accept': 'application/vnd.github.V3.raw'
-      }
+    const updateConfig = await queryGithub(`/repos/${m[1]}/${m[2]}/contents/update-config.json`, {
+      accept: 'application/vnd.github.v3.raw'
     });
 
     const updates = JSON.parse(updateConfig);

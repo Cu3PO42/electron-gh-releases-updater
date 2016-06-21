@@ -23,7 +23,6 @@
   "dependencies": {
     "bluebird": "^3.4.0",
     "fs-extra": "^0.22.1",
-    "github": "^1.1.2",
     "plist": "^1.2.0",
     "request": "^2.60.0",
     "request-progress": "^1.0.2",
