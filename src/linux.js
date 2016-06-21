@@ -11,6 +11,8 @@ export { unzip } from './nix';
 export async function prepareRestart() {
 }
 
+// this is a hack because Electron doesn't quit properly on Linux when there is
+// still a child process running, even if it is unref'd
 function registerQuitHandler() {
   app.on('quit', () => {
     process.exit();

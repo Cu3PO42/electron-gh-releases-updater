@@ -26,7 +26,10 @@ export async function doFullUpdate(updatePath, currentVersion) {
   await writeFileAsync(path.join(updatePath, 'resources', 'UPDATED'), currentVersion, 'utf-8');
   const updateBatPath = await tmpNameAsync({ postfix: '.bat' });
   await copyAsync(path.join(__dirname, '..', 'update.bat'), updateBatPath);
+
   spawn('cmd.exe', [
+    // spawn a new cmd from the original cmd, so that it has a proper window
+    // because it would otherwise not have a stdout, breaking the batch file
     '/c start cmd.exe /c',
     updateBatPath,
     process.pid,
@@ -42,6 +45,7 @@ export async function doFullUpdate(updatePath, currentVersion) {
 }
 
 let setVersionBatPath, rceditExePath;
+// copy required files to a temporary location before app files are overwritten
 export async function prepareRestart() {
   setVersionBatPath = await tmpNameAsync({ postfix: '.bat' });
   rceditExePath = await tmpNameAsync({ postfix: '.exe' });
